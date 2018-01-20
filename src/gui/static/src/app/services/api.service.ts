@@ -9,7 +9,8 @@ import { Address, GetWalletsResponseEntry, GetWalletsResponseWallet, PostWalletN
 @Injectable()
 export class ApiService {
 
-  private url = 'http://127.0.0.1:6420/'; // production
+  private url = location.protocol+'//'+location.hostname+(location.port ? ':'+location.port: '')+"/";
+  //private url = 'http://127.0.0.1:6420/'; // production
   // private url = '/api/'; // test
 
   constructor(
