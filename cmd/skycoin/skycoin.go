@@ -257,7 +257,7 @@ var devConfig = Config{
 	// Remote web interface
 	WebInterface:             true,
 	WebInterfacePort:         6420,
-	WebInterfaceAddr:         "127.0.0.1",
+	WebInterfaceAddr:         "0.0.0.0",
 	WebInterfaceCert:         "",
 	WebInterfaceKey:          "",
 	WebInterfaceHTTPS:        false,
@@ -265,7 +265,7 @@ var devConfig = Config{
 
 	RPCInterface:     true,
 	RPCInterfacePort: 6430,
-	RPCInterfaceAddr: "127.0.0.1",
+	RPCInterfaceAddr: "0.0.0.0",
 	RPCThreadNum:     5,
 
 	LaunchBrowser: true,
@@ -613,30 +613,29 @@ func Run(c *Config) {
 		}
 	}
 
-	// POTENTIALLY UNSAFE CODE -- See https://github.com/skycoin/skycoin/issues/838
-	// closelog, err := initLogging(c.DataDirectory, c.LogLevel, c.ColorLog, c.Logtofile, c.Logtogui, &d.LogBuff)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	return
-	// }
-	// if c.Logtogui {
-	// 	go func(buf *bytes.Buffer, quit chan struct{}) {
-	// 		for {
-	// 			select {
-	// 			case <-quit:
-	// 				logger.Info("Logbuff service closed normally")
-	// 				return
-	// 			case <-time.After(1 * time.Second): //insure logbuff size not exceed required size, like lru
-	// 				for buf.Len() > c.LogBuffSize {
-	// 					_, err := buf.ReadString(byte('\n')) //discard one line
-	// 					if err != nil {
-	// 						continue
-	// 					}
-	// 				}
-	// 			}
-	// 		}
-	// 	}(&d.LogBuff, quit)
-	// }
+	closelog, err := initLogging(c.DataDirectory, c.LogLevel, c.ColorLog, c.Logtofile, c.Logtogui, &d.LogBuff)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if c.Logtogui {
+		go func(buf *bytes.Buffer, quit chan struct{}) {
+			for {
+				select {
+				case <-quit:
+					logger.Info("Logbuff service closed normally")
+					return
+				case <-time.After(1 * time.Second): //insure logbuff size not exceed required size, like lru
+					for buf.Len() > c.LogBuffSize {
+						_, err := buf.ReadString(byte('\n')) //discard one line
+						if err != nil {
+							continue
+						}
+					}
+				}
+			}
+		}(&d.LogBuff, quit)
+	}
 
 	errC := make(chan error, 10)
 
@@ -728,7 +727,7 @@ func Run(c *Config) {
 		webInterface.Shutdown()
 	}
 	d.Shutdown()
-	// closelog()
+	closelog()
 	wg.Wait()
 	logger.Info("Goodbye")
 }
